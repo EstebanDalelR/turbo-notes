@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Special+Elite&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: theme('fontFamily.typewriter');
+  }
+
+  body {
+    @apply bg-sepia-100 text-sepia-900 antialiased;
+  }
+
+  .dark body {
+    @apply bg-sepia-950 text-sepia-100;
+  }
+
+  /* Subtle aged-paper texture via layered gradients. */
+  body {
+    background-image: radial-gradient(
+      circle at 20% 10%,
+      rgba(177, 132, 62, 0.06),
+      transparent 60%
+    );
+    min-height: 100vh;
+  }
+}
+
+@layer components {
+  .markdown-body h1 { @apply text-2xl font-bold mt-4 mb-2; }
+  .markdown-body h2 { @apply text-xl font-bold mt-4 mb-2; }
+  .markdown-body h3 { @apply text-lg font-bold mt-3 mb-1; }
+  .markdown-body p { @apply my-2 leading-relaxed; }
+  .markdown-body ul { @apply list-disc ml-6 my-2; }
+  .markdown-body ol { @apply list-decimal ml-6 my-2; }
+  .markdown-body code { @apply bg-sepia-200/60 dark:bg-sepia-800/60 px-1 rounded text-sm; }
+  .markdown-body pre { @apply bg-sepia-200/60 dark:bg-sepia-800/60 p-3 rounded my-2 overflow-x-auto; }
+  .markdown-body pre code { @apply bg-transparent p-0; }
+  .markdown-body blockquote { @apply border-l-4 border-sepia-400 pl-3 italic my-2; }
+  .markdown-body a { @apply text-sepia-600 dark:text-sepia-300 underline; }
+  .markdown-body img { @apply max-w-full rounded my-2; }
+  .markdown-body table { @apply border-collapse my-2; }
+  .markdown-body th, .markdown-body td { @apply border border-sepia-300 dark:border-sepia-700 px-2 py-1; }
+}

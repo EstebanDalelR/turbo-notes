@@ -6,6 +6,7 @@ from .views import (
     CategoryViewSet,
     NoteViewSet,
     PublicNoteView,
+    TranscribeView,
 )
 
 router = DefaultRouter()
@@ -20,4 +21,5 @@ urlpatterns = [
         PublicNoteView.as_view(),
         name="public-note",
     ),
+    path("transcribe/", TranscribeView.as_view(), name="transcribe"),
 ]

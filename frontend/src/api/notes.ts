@@ -17,12 +17,19 @@ function isNetworkError(err: unknown): boolean {
   return !(err as { response?: unknown } | undefined)?.response
 }
 
+const noteKey = (id: NoteId) => ['note', String(id)] as const
+
 function patchNoteInCache(qc: QueryClient, id: NoteId, patch: Partial<Note>) {
   for (const trashed of [false, true]) {
     qc.setQueryData<Note[]>(listKey(trashed), (old) =>
       old?.map((n) => (n.id === id ? { ...n, ...patch } : n)),
     )
   }
+  // Also patch the single-note cache the Editor reads from, so fields it shows
+  // straight off `note` (e.g. is_public) reflect the edit without a reload.
+  qc.setQueryData<Note | undefined>(noteKey(id), (old) =>
+    old ? { ...old, ...patch } : old,
+  )
 }
 
 export function useNotes(trashed = false) {
@@ -50,7 +57,7 @@ export function useNote(id: NoteId | undefined) {
     return undefined
   }
   return useQuery<Note | undefined>({
-    queryKey: ['note', String(id)],
+    queryKey: noteKey(id ?? ''),
     enabled: id !== undefined,
     queryFn: async () => {
       if (id !== undefined && !isTempId(id)) {

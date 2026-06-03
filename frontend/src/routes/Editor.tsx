@@ -9,6 +9,7 @@ import {
   useUploadAttachment,
 } from '../api/notes'
 import { Markdown } from '../components/Markdown'
+import { DictateButton } from '../components/DictateButton'
 import { exportHtml, exportMarkdown } from '../lib/export'
 import { useOnline } from '../hooks/useOnline'
 import type { SaveStatus } from '../lib/types'
@@ -33,6 +34,7 @@ export function Editor() {
   const [mode, setMode] = useState<'write' | 'preview'>('write')
   const [status, setStatus] = useState<SaveStatus>('idle')
   const previewRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const hydrated = useRef(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -72,6 +74,25 @@ export function Editor() {
   }
   const onTogglePublic = () => queueSave({ is_public: !note.is_public })
 
+  // Insert dictated text at the caret (or append), then restore the caret after it.
+  const insertText = (text: string) => {
+    const el = textareaRef.current
+    const sep = (prefix: string) => (prefix && !prefix.endsWith(' ') && !prefix.endsWith('\n') ? ' ' : '')
+    if (!el) {
+      const next = content + sep(content) + text
+      onContent(next)
+      return
+    }
+    const start = el.selectionStart ?? content.length
+    const end = el.selectionEnd ?? content.length
+    const before = content.slice(0, start)
+    const insert = sep(before) + text
+    const next = before + insert + content.slice(end)
+    onContent(next)
+    const caret = start + insert.length
+    requestAnimationFrame(() => { el.focus(); el.setSelectionRange(caret, caret) })
+  }
+
   const publicUrl = `${window.location.origin}/n/${note.public_id}`
 
   const onFiles = async (files: FileList | null) => {
@@ -104,6 +125,8 @@ export function Editor() {
           <button onClick={() => setMode('preview')} className={`px-2 py-1 ${mode === 'preview' ? 'bg-sepia-600 text-sepia-50' : ''}`}>Preview</button>
         </div>
 
+        <DictateButton onInsert={insertText} />
+
         <span className="ml-auto text-sepia-500">{statusLabel(status)}</span>
       </div>
 
@@ -118,6 +141,7 @@ export function Editor() {
       {/* Body */}
       {mode === 'write' ? (
         <textarea
+          ref={textareaRef}
           value={content}
           onChange={(e) => onContent(e.target.value)}
           placeholder="Write in markdown…"

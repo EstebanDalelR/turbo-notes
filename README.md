@@ -6,6 +6,7 @@ React PWA frontend + Django REST Framework backend (SQLite).
 ## Features
 
 - Markdown notes with a plain editor + preview toggle
+- **Voice dictation** — speak notes; online uses Groq Whisper, offline uses an on-device model ([docs](docs/voice.md))
 - Colored categories (4 defaults seeded per user: Grocery list, Money ideas, Random thoughts, Projects); add/recolor/delete your own
 - **No save button** — debounced autosave (~800 ms) with last-write-wins conflict resolution
 - File attachments (images, video, any file); images can be embedded in markdown
@@ -95,11 +96,26 @@ Build / preview (service worker only runs on a build): `npm run build && npm run
   that is remapped to the real server id during flush. The server resolves any edit
   conflicts via last-write-wins on `client_updated_at`.
 
+## Testing
+
+Three layers, all runnable without external services (the e2e layer mocks the API):
+
+```bash
+cd backend  && python manage.py test          # Django API tests
+cd frontend && npm test                       # Vitest unit tests (voice logic)
+cd frontend && npx playwright install chromium && npm run e2e   # Playwright e2e
+```
+
+See [docs/testing.md](docs/testing.md) for what each layer covers and how the
+e2e mock / fake-microphone setup works.
+
 ## Notes
 
 - Dev uses session auth + CSRF over the Vite proxy (same origin), so cookies just work.
 - Settings read from env vars (`DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `FRONTEND_ORIGINS`, …)
   with dev-friendly defaults. Set a real secret key and `DJANGO_DEBUG=0` for production.
+- Set `GROQ_API_KEY` to enable online voice dictation (Groq Whisper); without it,
+  dictation falls back to the on-device model. See [docs/voice.md](docs/voice.md).
 
 ## Documentation
 
@@ -110,3 +126,5 @@ Build / preview (service worker only runs on a build): `npm run build && npm run
 | [docs/api.md](docs/api.md) | REST API reference for the endpoints under `/api/` |
 | [docs/data-model.md](docs/data-model.md) | The three tables (Note / Category / Attachment) and their fields |
 | [docs/offline-sync.md](docs/offline-sync.md) | The offline outbox + reconnect sync model in depth |
+| [docs/voice.md](docs/voice.md) | Voice dictation: online Groq Whisper + on-device offline model |
+| [docs/testing.md](docs/testing.md) | The three test layers (Django, Vitest, Playwright) and how to run them |

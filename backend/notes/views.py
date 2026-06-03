@@ -1,3 +1,5 @@
+import requests
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -5,6 +7,7 @@ from rest_framework.generics import RetrieveAPIView
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import Attachment, Category, Note
 from .serializers import (
@@ -13,6 +16,8 @@ from .serializers import (
     NoteSerializer,
     PublicNoteSerializer,
 )
+
+GROQ_TRANSCRIBE_URL = 'https://api.groq.com/openai/v1/audio/transcriptions'
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -130,3 +135,56 @@ class PublicNoteView(RetrieveAPIView):
 
     def get_queryset(self):
         return Note.objects.filter(is_public=True).prefetch_related("attachments")
+
+
+class TranscribeView(APIView):
+    """Transcribe an uploaded audio clip via Groq's Whisper API (online path).
+
+    Expects multipart ``audio`` (the recorded clip) plus an optional ``language``
+    hint (ISO-639-1, e.g. ``en``/``es``; omit or ``auto`` to let Whisper detect).
+    Returns ``{"text": ...}``. The frontend uses the on-device model instead when
+    offline or when this endpoint reports it's unconfigured.
+    """
+
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        if not settings.GROQ_API_KEY:
+            return Response(
+                {"detail": "Server transcription is not configured."},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        audio = request.FILES.get("audio")
+        if audio is None:
+            return Response(
+                {"audio": "This field is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        data = {"model": settings.GROQ_MODEL, "response_format": "json"}
+        language = (request.data.get("language") or "").strip()
+        if language and language.lower() != "auto":
+            data["language"] = language
+
+        try:
+            resp = requests.post(
+                GROQ_TRANSCRIBE_URL,
+                headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+                files={"file": (audio.name or "audio.webm", audio, audio.content_type)},
+                data=data,
+                timeout=60,
+            )
+        except requests.RequestException:
+            return Response(
+                {"detail": "Could not reach the transcription service."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        if resp.status_code != 200:
+            return Response(
+                {"detail": "Transcription failed.", "upstream": resp.text[:500]},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response({"text": resp.json().get("text", "")})

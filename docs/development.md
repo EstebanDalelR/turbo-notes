@@ -83,9 +83,13 @@ same-origin and session/CSRF cookies work without CORS config.
 
 ```bash
 cd backend && .venv/bin/python manage.py test     # Django tests
+cd frontend && npm test                            # Vitest unit tests
+cd frontend && npm run e2e                          # Playwright e2e (mocked API)
 cd frontend && npm run lint                        # ESLint
 cd frontend && npm run build                       # type-check (tsc -b) + prod build
 ```
+
+See [testing.md](testing.md) for what each layer covers.
 
 ## Project layout
 

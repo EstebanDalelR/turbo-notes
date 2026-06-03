@@ -151,6 +151,12 @@ REST_FRAMEWORK = {
 DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.environ.get('MAX_UPLOAD_BYTES', 50 * 1024 * 1024))
 FILE_UPLOAD_MAX_MEMORY_SIZE = DATA_UPLOAD_MAX_MEMORY_SIZE
 
+# Voice transcription — online path uses Groq's (OpenAI-compatible) Whisper API.
+# Leave GROQ_API_KEY unset to disable the server path; the frontend then falls back
+# to the on-device model. The key is read server-side only and never sent to clients.
+GROQ_API_KEY = os.environ.get('GROQ_API_KEY', '')
+GROQ_MODEL = os.environ.get('GROQ_MODEL', 'whisper-large-v3')
+
 # CORS / CSRF — the Vite dev server runs on a different origin in development.
 FRONTEND_ORIGINS = os.environ.get(
     'FRONTEND_ORIGINS',

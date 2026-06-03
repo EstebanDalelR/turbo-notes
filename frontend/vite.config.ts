@@ -31,6 +31,10 @@ export default defineConfig({
       },
       workbox: {
         navigateFallbackDenylist: [/^\/api/, /^\/media/, /^\/admin/],
+        // The ONNX runtime wasm (~24 MB, bundled by transformers.js) is far too
+        // big to precache into every install. It's runtime-cached below instead,
+        // only when the user opts into the offline voice model.
+        globIgnores: ['**/ort-wasm*.wasm'],
         runtimeCaching: [
           {
             // Cache GET API responses so notes/categories are readable offline.
@@ -50,6 +54,30 @@ export default defineConfig({
             options: {
               cacheName: 'media-cache',
               expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 },
+            },
+          },
+          {
+            // On-device Whisper weights (Hugging Face) — cache the one-time
+            // download so dictation works offline afterwards.
+            urlPattern: ({ url }) =>
+              url.origin === 'https://huggingface.co' || url.origin === 'https://cdn-lfs.huggingface.co',
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'whisper-models',
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 365 },
+            },
+          },
+          {
+            // ONNX runtime wasm (bundled same-origin by transformers.js) — cached
+            // on first use so on-device transcription works offline thereafter.
+            urlPattern: ({ url, sameOrigin }) =>
+              sameOrigin && /ort-wasm.*\.wasm$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'onnx-runtime',
+              cacheableResponse: { statuses: [0, 200] },
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
           },
         ],

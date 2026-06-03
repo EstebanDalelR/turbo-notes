@@ -40,9 +40,18 @@ python3 dev.py
 
 This spawns the Django backend (`:8000`) and the Vite frontend (`:5173`) together
 and merges their output into one color-coded, source-tagged stream. Open
-http://localhost:5173 and Ctrl-C stops both. Useful flags: `--level warn`,
-`--no-color`, `--backend-port 8001`. See [docs/development.md](docs/development.md)
-for details and how to run the two servers separately.
+http://localhost:5173 and Ctrl-C stops both.
+
+All flags:
+
+| Flag | Default | Effect |
+| --- | --- | --- |
+| `--level <log\|info\|warn\|error>` | `log` | Minimum severity to display (`log` = everything; `warn` shows only `WARN`/`ERROR`) |
+| `--no-color` | off | Disable ANSI colors — plain output, e.g. when piping to a file |
+| `--backend-port <port>` | `8000` | Port for the Django backend |
+
+See [docs/development.md](docs/development.md) for details and how to run the two
+servers separately.
 
 ## Backend — run separately
 
@@ -91,3 +100,13 @@ Build / preview (service worker only runs on a build): `npm run build && npm run
 - Dev uses session auth + CSRF over the Vite proxy (same origin), so cookies just work.
 - Settings read from env vars (`DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, `FRONTEND_ORIGINS`, …)
   with dev-friendly defaults. Set a real secret key and `DJANGO_DEBUG=0` for production.
+
+## Documentation
+
+| Doc | What's in it |
+| --- | --- |
+| [docs/development.md](docs/development.md) | Local setup, the `dev.py` one-command flow, tests & linting, project layout |
+| [docs/architecture.md](docs/architecture.md) | How the offline-first pieces fit together end to end |
+| [docs/api.md](docs/api.md) | REST API reference for the endpoints under `/api/` |
+| [docs/data-model.md](docs/data-model.md) | The three tables (Note / Category / Attachment) and their fields |
+| [docs/offline-sync.md](docs/offline-sync.md) | The offline outbox + reconnect sync model in depth |

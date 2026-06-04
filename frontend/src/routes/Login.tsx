@@ -34,7 +34,8 @@ export function Login() {
           <input value={username} onChange={(e) => setUsername(e.target.value)} autoFocus
             className="mt-1 w-full rounded border border-sepia-300 dark:border-sepia-700 bg-transparent px-3 py-2" />
         </label>
-        <PasswordInput value={password} onChange={setPassword} show={showPassword} />
+        <PasswordInput value={password} onChange={setPassword} show={showPassword}
+          onToggle={() => setShowPassword((s) => !s)} />
         {error && <p className="text-red-700 dark:text-red-400 text-sm mb-3">{error}</p>}
         <button type="submit" disabled={login.isPending}
           className="w-full rounded bg-sepia-600 text-sepia-50 py-2 font-display tracking-wide hover:bg-sepia-700 disabled:opacity-60">

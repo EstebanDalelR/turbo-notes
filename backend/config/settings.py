@@ -51,6 +51,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Serves the built PWA + collected static files directly from gunicorn in
+    # production (no separate web server). No-op cost in dev.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -86,7 +89,9 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        # In production the DB lives on a persistent volume (see DJANGO_DB_PATH);
+        # locally it defaults to backend/db.sqlite3.
+        'NAME': os.environ.get('DJANGO_DB_PATH', BASE_DIR / 'db.sqlite3'),
     }
 }
 
@@ -126,10 +131,24 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+# collectstatic target (admin + DRF assets) — served by WhiteNoise at /static/.
+STATIC_ROOT = os.environ.get('DJANGO_STATIC_ROOT', str(BASE_DIR / 'staticfiles'))
 
-# Media (user uploads)
+STORAGES = {
+    'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+    'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedStaticFilesStorage'},
+}
+
+# The built React PWA (frontend/dist). WhiteNoise serves its files — index.html,
+# /assets/*, the service worker, manifest, and icons — at the site root so the
+# absolute paths Vite emits resolve and the SW keeps root scope. Unset in dev
+# (the Vite dev server serves the app instead).
+WHITENOISE_ROOT = os.environ.get('DJANGO_PWA_ROOT', '')
+WHITENOISE_INDEX_FILE = True
+
+# Media (user uploads). In production this points at a persistent volume.
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = os.environ.get('DJANGO_MEDIA_ROOT', str(BASE_DIR / 'media'))
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -171,3 +190,15 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 # The SPA reads the CSRF token from the cookie, so it must not be HttpOnly.
 CSRF_COOKIE_HTTPONLY = False
+
+# --- Production hardening ---------------------------------------------------
+# Enabled automatically whenever DEBUG is off (i.e. in the Docker/Kamal image).
+if not DEBUG:
+    # kamal-proxy terminates TLS and forwards plain HTTP with this header, so
+    # Django can tell the original request was HTTPS (for secure cookies, etc.).
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # Behind kamal-proxy we don't redirect in Django (the proxy handles
+    # http->https); keep these conservative.
+    SECURE_CONTENT_TYPE_NOSNIFF = True

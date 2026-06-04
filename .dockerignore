@@ -1,0 +1,28 @@
+# VCS / editor
+.git
+.gitignore
+.DS_Store
+**/.DS_Store
+.vscode
+.idea
+.claude
+
+# Python
+backend/.venv
+**/__pycache__
+**/*.py[cod]
+# DB + uploads live on the persistent volume, never bake them into the image.
+backend/db.sqlite3
+backend/media
+backend/staticfiles
+
+# Node — rebuilt inside the image
+frontend/node_modules
+frontend/dist
+frontend/dev-dist
+
+# Tests / docs not needed at runtime
+frontend/e2e
+frontend/playwright.config.ts
+docs
+**/*.md

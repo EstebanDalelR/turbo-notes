@@ -16,3 +16,7 @@ frontend/dev-dist/
 .DS_Store
 .vscode/
 .idea/
+
+# Kamal / deploy
+.kamal/secrets
+backend/staticfiles/

@@ -1,0 +1,64 @@
+# Kamal 2 deploy config for Turbo Notes.
+# Single Docker container: Vite-built PWA served by Django (gunicorn + WhiteNoise),
+# SQLite + media uploads on a persistent volume. kamal-proxy fronts it with TLS.
+# Run from the repo root: `kamal setup` (first time), then `kamal deploy`.
+
+service: turbonotes
+
+# Docker Hub image (same registry account as your other apps).
+image: codetopusinc/turbonotes
+
+servers:
+  web:
+    - 134.199.180.115
+
+# kamal-proxy: auto Let's Encrypt cert for the subdomain, health-checked on /up.
+deploy_timeout: 90
+proxy:
+  ssl: true
+  host: turbonotes.estebandalelr.co
+  app_port: 8000
+  healthcheck:
+    interval: 3
+    timeout: 5
+    path: /up
+
+registry:
+  server: docker.io
+  username: codetopusinc
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+# Build an amd64 image for the droplet (matches your existing apps).
+builder:
+  arch: amd64
+
+env:
+  clear:
+    # ALLOWED_HOSTS is wide open ON PURPOSE: kamal-proxy is the only ingress and
+    # only forwards turbonotes.estebandalelr.co traffic to this container, so an
+    # arbitrary-Host request can never reach Django. This also lets kamal-proxy's
+    # /up health check pass regardless of the Host header it uses. CSRF is still
+    # locked to the real origin via FRONTEND_ORIGINS below.
+    DJANGO_ALLOWED_HOSTS: "*"
+    DJANGO_DEBUG: "0"
+    # Drives CORS + CSRF_TRUSTED_ORIGINS — must be the https origin.
+    FRONTEND_ORIGINS: "https://turbonotes.estebandalelr.co"
+    # Persistent paths on the mounted volume (see `volumes:` below).
+    DJANGO_DB_PATH: "/data/db.sqlite3"
+    DJANGO_MEDIA_ROOT: "/data/media"
+    GROQ_MODEL: "whisper-large-v3"
+  secret:
+    - DJANGO_SECRET_KEY
+    - GROQ_API_KEY
+
+# db.sqlite3 + media/ survive deploys here. Back this volume up off-server.
+volumes:
+  - "turbonotes_data:/data"
+
+aliases:
+  console: app exec --interactive --reuse "python manage.py shell"
+  shell: app exec --interactive --reuse "bash"
+  logs: app logs -f
+  migrate: app exec --reuse "python manage.py migrate"
+  createsuperuser: app exec --interactive --reuse "python manage.py createsuperuser"

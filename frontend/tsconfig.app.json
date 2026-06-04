@@ -21,5 +21,9 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Tests are type-checked/run by Vitest, not bundled into the production app,
+  // and may use non-erasable TS (e.g. parameter properties) that this stricter
+  // config rejects. Keep them out of the production `tsc -b` build.
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/test"]
 }

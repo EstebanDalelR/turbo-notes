@@ -4,14 +4,18 @@
 FROM node:22-bookworm-slim AS frontend
 WORKDIR /app/frontend
 
-# Install deps against the lockfile first for better layer caching.
-# --ignore-scripts: the only install script that matters here is sharp's, a
-# transitive dep of @huggingface/transformers used only for Node-side image
-# processing. The browser bundle never touches it, and building it from source
-# needs a toolchain we don't ship. esbuild/rolldown binaries come via optional
-# platform deps (no script), so the build is unaffected.
+# Install deps for the build.
+#   --ignore-scripts: the only meaningful install script here is sharp's (a
+#     transitive dep of @huggingface/transformers, used only Node-side for image
+#     processing). The browser bundle never touches it and building from source
+#     needs a toolchain we don't ship. esbuild/rolldown binaries come via
+#     optional platform deps (no script), so the build is unaffected.
+#   `npm install` (not `npm ci`): the committed lock is generated on macOS and
+#     omits the Linux-only transitive deps (@emnapi/*) that the Linux sharp
+#     binaries require, which `npm ci` rejects as out-of-sync. `install`
+#     reconciles them for this platform.
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci --ignore-scripts
+RUN npm install --ignore-scripts --no-audit --no-fund
 
 # Build the production bundle (tsc -b && vite build -> frontend/dist).
 COPY frontend/ ./

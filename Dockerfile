@@ -5,8 +5,13 @@ FROM node:22-bookworm-slim AS frontend
 WORKDIR /app/frontend
 
 # Install deps against the lockfile first for better layer caching.
+# --ignore-scripts: the only install script that matters here is sharp's, a
+# transitive dep of @huggingface/transformers used only for Node-side image
+# processing. The browser bundle never touches it, and building it from source
+# needs a toolchain we don't ship. esbuild/rolldown binaries come via optional
+# platform deps (no script), so the build is unaffected.
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 # Build the production bundle (tsc -b && vite build -> frontend/dist).
 COPY frontend/ ./

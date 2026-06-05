@@ -23,6 +23,11 @@ React PWA frontend + Django REST Framework backend (SQLite).
 backend/    Django project (config/) + accounts/ + notes/ apps, SQLite, media/
 frontend/   Vite + React + TypeScript PWA (TanStack Query, Zustand, Tailwind)
 ```
+## Made With
+
+Claude Code using Claude 4.8.
+Gemini for the images.
+Everything happened in dictation with plan mode and later reviewed.
 
 ## Quick start
 
